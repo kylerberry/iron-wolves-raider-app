@@ -25,7 +25,10 @@ func clanLeaderboard(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	// mode 4 == raid activity
 	queryModes := []string{"4"}
-	req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/Stats/Leaderboards/Clans/"+clanID+"?modes="+strings.Join(queryModes, ","), nil)
+	maxTop := "24"
+
+	// @todo this endpoint is buggy, we'll have to manually get stats for every member :(
+	req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/Stats/Leaderboards/Clans/"+clanID+"?modes="+strings.Join(queryModes, ",")+"&maxtop="+maxTop, nil)
 	if clientErr != nil {
 		log.Fatal(clientErr)
 	}
