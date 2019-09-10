@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 var apiKey string
 var apiRoot string
 var clanID = "882490"
+var bungo BungoRequester
 
 func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome Wolves!")
@@ -24,33 +24,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 // raids only right now, but could be expanded
 func clanLeaderboard(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
 	// mode 4 == raid activity
 	queryModes := []string{"4"}
-	maxTop := "25"
-
-	// @todo this endpoint is buggy, we'll have to manually get stats for every member :(
-	req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/Stats/Leaderboards/Clans/"+clanID+"?modes="+strings.Join(queryModes, ",")+"&maxtop="+maxTop, nil)
-	if clientErr != nil {
-		log.Fatal(clientErr)
-	}
-	req.Header.Add("X-API-Key", apiKey)
-	resp, getErr := client.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
-	}
-	defer resp.Body.Close()
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	maxTop := "24"
+	body := bungo.Get(apiRoot + "/Destiny2/Stats/Leaderboards/Clans/" + clanID + "?modes=" + strings.Join(queryModes, ",") + "&maxtop=" + maxTop)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
 }
 
 func clanStats(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
-	client := &http.Client{}
 	// just a test value for now. In the real thing we'll loop through the members list
 	me, nf := m.Find("Kypothesis")
 	if nf != nil {
@@ -63,20 +46,7 @@ func clanStats(w http.ResponseWriter, r *http.Request) {
 	// day end
 	// *can only fetch 31 days of activity
 	memberType := strconv.Itoa(me.DestinyUserInfo.MembershipType)
-	req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/"+memberType+"/Account/"+me.DestinyUserInfo.MembershipID+"/Character/0/Stats?modes="+strings.Join(modes, ",")+"&groups="+strings.Join(statGroups, ","), nil)
-	if clientErr != nil {
-		log.Fatal(clientErr)
-	}
-	req.Header.Add("X-API-Key", apiKey)
-	resp, getErr := client.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
-	}
-	defer resp.Body.Close()
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	body := bungo.Get(apiRoot + "/Destiny2/" + memberType + "/Account/" + me.DestinyUserInfo.MembershipID + "/Character/0/Stats?modes=" + strings.Join(modes, ",") + "&groups=" + strings.Join(statGroups, ","))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
@@ -84,7 +54,6 @@ func clanStats(w http.ResponseWriter, r *http.Request) {
 
 func clanActivities(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
-	client := &http.Client{}
 	// just a test value
 	me, nf := m.Find("Kypothesis")
 	if nf != nil {
@@ -94,20 +63,7 @@ func clanActivities(w http.ResponseWriter, r *http.Request) {
 	memberType := strconv.Itoa(me.DestinyUserInfo.MembershipType)
 	output := []byte{}
 	for _, cid := range p.Response.Profile.Data.CharacterIDs {
-		req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/"+memberType+"/Account/"+me.DestinyUserInfo.MembershipID+"/Character/"+cid+"/Stats/Activities?mode=4", nil)
-		if clientErr != nil {
-			log.Fatal(clientErr)
-		}
-		req.Header.Add("X-API-Key", apiKey)
-		resp, getErr := client.Do(req)
-		if getErr != nil {
-			log.Fatal(getErr)
-		}
-		defer resp.Body.Close()
-		body, readErr := ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			log.Fatal(readErr)
-		}
+		body := bungo.Get(apiRoot + "/Destiny2/" + memberType + "/Account/" + me.DestinyUserInfo.MembershipID + "/Character/" + cid + "/Stats/Activities?mode=4")
 		output = append(output, body...)
 	}
 
@@ -117,22 +73,8 @@ func clanActivities(w http.ResponseWriter, r *http.Request) {
 
 // clanMembers gets the clan members and wraps them in a struct
 func getClanMembers() Members {
-	client := &http.Client{}
 	page := "1"
-	req, clientErr := http.NewRequest("GET", apiRoot+"/GroupV2/"+clanID+"/Members?currentPage="+page, nil)
-	if clientErr != nil {
-		log.Fatal(clientErr)
-	}
-	req.Header.Add("X-API-Key", apiKey)
-	resp, getErr := client.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
-	}
-	defer resp.Body.Close()
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	body := bungo.Get(apiRoot + "/GroupV2/" + clanID + "/Members?currentPage=" + page)
 	m := Members{}
 	jsonErr := json.Unmarshal(body, &m)
 	if jsonErr != nil {
@@ -142,22 +84,8 @@ func getClanMembers() Members {
 }
 
 func getProfile(m Member) MemberProfile {
-	client := &http.Client{}
 	memberType := strconv.Itoa(m.DestinyUserInfo.MembershipType)
-	req, clientErr := http.NewRequest("GET", apiRoot+"/Destiny2/"+memberType+"/Profile/"+m.DestinyUserInfo.MembershipID+"?components=100", nil)
-	if clientErr != nil {
-		log.Fatal(clientErr)
-	}
-	req.Header.Add("X-API-Key", apiKey)
-	resp, getErr := client.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
-	}
-	defer resp.Body.Close()
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
+	body := bungo.Get(apiRoot + "/Destiny2/" + memberType + "/Profile/" + m.DestinyUserInfo.MembershipID + "?components=100")
 	mp := MemberProfile{}
 	jsonErr := json.Unmarshal(body, &mp)
 	if jsonErr != nil {
@@ -171,7 +99,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	apiKey = os.Getenv("API_KEY")
+
+	bungo.APIKey = os.Getenv("API_KEY")
 	apiRoot = os.Getenv("API_ROOT_PATH")
 
 	router := mux.NewRouter().StrictSlash(true)
