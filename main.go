@@ -51,7 +51,7 @@ func clanLeaderboard(w http.ResponseWriter, r *http.Request) {
 func clanStats(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
 	client := &http.Client{}
-	// just a test value
+	// just a test value for now. In the real thing we'll loop through the members list
 	me, nf := m.Find("Kypothesis")
 	if nf != nil {
 		log.Fatal(nf)
