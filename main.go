@@ -22,16 +22,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome Wolves!")
 }
 
-// raids only right now, but could be expanded
-func clanLeaderboard(w http.ResponseWriter, r *http.Request) {
-	// mode 4 == raid activity
-	queryModes := []string{"4"}
-	maxTop := "24"
-	body := bungo.Get(apiRoot + "/Destiny2/Stats/Leaderboards/Clans/" + clanID + "?modes=" + strings.Join(queryModes, ",") + "&maxtop=" + maxTop)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(body)
-}
-
 func clanStats(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
 	// just a test value for now. In the real thing we'll loop through the members list
@@ -54,33 +44,43 @@ func clanStats(w http.ResponseWriter, r *http.Request) {
 
 func clanActivities(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
-	// just a test value
-	me, nf := m.Find("Kypothesis")
-	if nf != nil {
-		log.Fatal(nf)
-	}
-	p := getProfile(me)
-	memberType := strconv.Itoa(me.DestinyUserInfo.MembershipType)
-	output := []byte{}
-	for _, cid := range p.Response.Profile.Data.CharacterIDs {
-		body := bungo.Get(apiRoot + "/Destiny2/" + memberType + "/Account/" + me.DestinyUserInfo.MembershipID + "/Character/" + cid + "/Stats/Activities?mode=4")
-		output = append(output, body...)
+	mca := map[string]CharactersActivities{}
+	for _, member := range m.All() {
+		mca[member.DestinyUserInfo.MembershipID] = getActivities(member)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(output)
+	log.Println(mca)
 }
 
 // clanMembers gets the clan members and wraps them in a struct
-func getClanMembers() Members {
+func getClanMembers() ClanMembers {
+	// all members fit on 1 page atm
 	page := "1"
 	body := bungo.Get(apiRoot + "/GroupV2/" + clanID + "/Members?currentPage=" + page)
-	m := Members{}
+	m := ClanMembers{}
 	jsonErr := json.Unmarshal(body, &m)
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
 	}
 	return m
+}
+
+func getActivities(m Member) CharactersActivities {
+	p := getProfile(m)
+	memberType := strconv.Itoa(m.DestinyUserInfo.MembershipType)
+	ca := CharactersActivities{}
+	for _, cid := range p.Characters() {
+		body := bungo.Get(apiRoot + "/Destiny2/" + memberType + "/Account/" + m.DestinyUserInfo.MembershipID + "/Character/" + cid + "/Stats/Activities?mode=4")
+		c := CharacterActivity{}
+		jsonErr := json.Unmarshal(body, &c)
+		if jsonErr != nil {
+			log.Fatal(jsonErr)
+		}
+		if len(c.Response.Activities) > 0 {
+			ca[cid] = c
+		}
+	}
+	return ca
 }
 
 func getProfile(m Member) MemberProfile {
@@ -105,9 +105,8 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", home)
-	router.HandleFunc("/clan-leaderboard", clanLeaderboard)
-	router.HandleFunc("/clan-stats", clanStats)
-	router.HandleFunc("/clan-activities", clanActivities)
+	// router.HandleFunc("api/clan-stats", clanStats)
+	router.HandleFunc("/api/clan-activities", clanActivities)
 	log.Fatal(http.ListenAndServe(":8888", router))
 }
 

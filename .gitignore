@@ -1,2 +1,5 @@
 .env
 .rc
+*.sqlite
+.zip
+.DS_Store
