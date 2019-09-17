@@ -1,7 +1,5 @@
 package main
 
-import "errors"
-
 // CharacterActivity is the top level wrapper for the activity response
 type CharacterActivity struct {
 	Response Response
@@ -23,7 +21,7 @@ type CharacterActivityDetail struct {
 
 // CharacterActivityRef is useful information about that activity
 type CharacterActivityRef struct {
-	ReferenceID string
+	ReferenceID int
 	Mode        int
 }
 
@@ -40,20 +38,20 @@ type StatValue struct {
 }
 
 // GetActivity finds an activity for a character
-func (ca CharacterActivity) GetActivity(id string) (CharacterActivityDetail, error) {
-	for _, a := range ca.Response.Activities {
-		if a.ActivityDetails.ReferenceID == id {
-			return a, nil
-		}
-	}
-	return CharacterActivityDetail{}, errors.New("Unable to find activity matching reference: " + id)
-}
+// func (ca CharacterActivity) GetActivity(id int) (CharacterActivityDetail, error) {
+// 	for _, a := range ca.Response.Activities {
+// 		if a.ActivityDetails.ReferenceID == id {
+// 			return a, nil
+// 		}
+// 	}
+// 	return CharacterActivityDetail{}, errors.New("Unable to find activity matching reference: " + string(id))
+// }
 
 // GetStat will return the stat information for an activity
-func (ca CharacterActivityDetail) GetStat(stat string) (CharacterActivityStat, error) {
-	s, ok := ca.Values[stat]
-	if ok {
-		return s, nil
-	}
-	return CharacterActivityStat{}, errors.New("Unable to find activity stat: " + stat)
-}
+// func (ca CharacterActivityDetail) GetStat(stat string) (CharacterActivityStat, error) {
+// 	s, ok := ca.Values[stat]
+// 	if ok {
+// 		return s, nil
+// 	}
+// 	return CharacterActivityStat{}, errors.New("Unable to find activity stat: " + stat)
+// }

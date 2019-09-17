@@ -13,6 +13,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var raidID = map[string]int{
+	"crownofsorrows":   3333172150,
+	"scourgeofthepast": 548750096,
+	// "spireofstars":,
+	// "eaterofworlds":,
+	// "leviathan":,
+	"lastwish": 2122313384,
+}
+
 var apiKey string
 var apiRoot string
 var clanID = "882490"
@@ -25,7 +34,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 func clanStats(w http.ResponseWriter, r *http.Request) {
 	m := getClanMembers()
 	// just a test value for now. In the real thing we'll loop through the members list
-	me, nf := m.Find("Kypothesis")
+	me, nf := m.FindByName("Kypothesis")
 	if nf != nil {
 		log.Fatal(nf)
 	}
@@ -40,16 +49,6 @@ func clanStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
-}
-
-func clanActivities(w http.ResponseWriter, r *http.Request) {
-	m := getClanMembers()
-	mca := map[string]CharactersActivities{}
-	for _, member := range m.All() {
-		mca[member.DestinyUserInfo.MembershipID] = getActivities(member)
-	}
-
-	log.Println(mca)
 }
 
 // clanMembers gets the clan members and wraps them in a struct
@@ -94,6 +93,52 @@ func getProfile(m Member) MemberProfile {
 	return mp
 }
 
+// func clanLeaderboard(w http.ResponseWriter, r *http.Request) {
+// }
+
+// gets the clan leaderboard for an exact raid activity
+func clanRaidLeaderboard(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	clan := getClanMembers()
+	rid := raidID[vars["raidSlug"]]
+	membersLength := strconv.Itoa(len(clan.All()))
+	playerReport := map[string]interface{}{}
+	// all members
+	for i, member := range clan.All() {
+		index := strconv.Itoa(i + 1)
+		log.Println("fetching activities for " + member.DestinyUserInfo.DisplayName + " (" + index + "/" + membersLength + ")\n")
+		// @todo: this needs to look back more than 31 days
+		raidRuns := []CharacterActivityDetail{}
+		charActivities := getActivities(member)
+		// all characters for each member
+		for _, activities := range charActivities {
+			// all activities
+			for _, activity := range activities.Response.Activities {
+				// hold onto the activity if it matches our desired raid id
+				if rid == activity.ActivityDetails.ReferenceID {
+					raidRuns = append(raidRuns, activity)
+				}
+			}
+		}
+
+		if len(raidRuns) > 0 {
+			activityRef := CharacterActivityRef{rid, 4}
+			playerReport[member.DestinyUserInfo.MembershipID] = NewPlayerReport(member.DestinyUserInfo, activityRef, raidRuns)
+		}
+
+		log.Println(playerReport)
+	}
+
+	log.Println("Completed fetching member raid activities")
+
+	resp, jsonErr := json.Marshal(playerReport)
+	if jsonErr != nil {
+		// @todo provide an error response
+		log.Println(jsonErr)
+	}
+	w.Write(resp)
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -105,13 +150,9 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", home)
-	// router.HandleFunc("api/clan-stats", clanStats)
-	router.HandleFunc("/api/clan-activities", clanActivities)
+	// router.HandleFunc("/api/player/{playerID}/raid/stats", playerActivityStats)
+	router.HandleFunc("/api/raid/{raidSlug}/leaderboard", clanRaidLeaderboard)
+	// router.HandleFunc("/api/raid/leaderboard", clanLeaderboard)
+
 	log.Fatal(http.ListenAndServe(":8888", router))
 }
-
-// -√ get clan members
-// -√ get profile for each member
-// -√ get characters for each member
-// - get raid activity history for each member->character
-// - get stats for each activity
