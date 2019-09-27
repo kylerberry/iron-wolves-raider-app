@@ -126,7 +126,7 @@ func clanRaidLeaderboard(w http.ResponseWriter, r *http.Request) {
 			playerReport[member.DestinyUserInfo.MembershipID] = NewPlayerReport(member.DestinyUserInfo, activityRef, raidRuns)
 		}
 
-		log.Println(playerReport)
+		log.Println(playerReport, "\n")
 	}
 
 	log.Println("Completed fetching member raid activities")

@@ -36,22 +36,3 @@ type StatValue struct {
 	Value        float64
 	DisplayValue string
 }
-
-// GetActivity finds an activity for a character
-// func (ca CharacterActivity) GetActivity(id int) (CharacterActivityDetail, error) {
-// 	for _, a := range ca.Response.Activities {
-// 		if a.ActivityDetails.ReferenceID == id {
-// 			return a, nil
-// 		}
-// 	}
-// 	return CharacterActivityDetail{}, errors.New("Unable to find activity matching reference: " + string(id))
-// }
-
-// GetStat will return the stat information for an activity
-// func (ca CharacterActivityDetail) GetStat(stat string) (CharacterActivityStat, error) {
-// 	s, ok := ca.Values[stat]
-// 	if ok {
-// 		return s, nil
-// 	}
-// 	return CharacterActivityStat{}, errors.New("Unable to find activity stat: " + stat)
-// }

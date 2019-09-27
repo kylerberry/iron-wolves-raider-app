@@ -23,14 +23,13 @@ func NewPlayerReport(player DestinyUserInfo, activity CharacterActivityRef, acti
 			if _, reported := reportedStats[stat]; !reported {
 				continue
 			}
-			v, ok := stats[stat]
-			if ok {
-				existing := stats[stat]
+			if v, ok := stats[stat]; ok {
+				existing := &v
 				existing.Basic.Value += value.Basic.Value
-				existing.Basic.DisplayValue = fmt.Sprintf("%f", existing.Basic.Value)
-				stats[stat] = existing
+				existing.Basic.DisplayValue = fmt.Sprintf("%f", v.Basic.Value)
+				// v.AddValue(value.Basic.Value)
 			} else {
-				stats[stat] = v
+				stats[stat] = value
 			}
 		}
 	}
