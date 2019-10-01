@@ -15,9 +15,9 @@ This was built using Golang as a fun introduction to the language.
 
 2) get a raid leaderboard data dump:
 
--`http://localhost:8000/api/raid/lastwish/leaderboard`
--`http://localhost:8000/api/raid/crownofsorrows/leaderboard`
--`http://localhost:8000/api/raid/scourgeofthepast/leaderboard`
+- `http://localhost:8000/api/raid/lastwish/leaderboard`
+- `http://localhost:8000/api/raid/crownofsorrows/leaderboard`
+- `http://localhost:8000/api/raid/scourgeofthepast/leaderboard`
 
 **TODO**
 - cache bungie response data via cron (for quicker data fetching)
